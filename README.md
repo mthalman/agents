@@ -35,24 +35,34 @@ This repository provides a scaffolding system to organize and deploy:
 
 ```
 agents/
-├── agents/              # Custom AI agent configurations (unified format)
-│   └── *.md            # Agent definitions that work with both Claude & Copilot
+├── agents/              # Custom AI agent configurations
+│   ├── *.md            # Unified agents (work with both Claude & Copilot)
+│   ├── claude/         # Claude Code CLI specific agents
+│   └── copilot/        # GitHub Copilot specific agents
 ├── prompts/            # Prompt templates and collections
 │   ├── system/         # System-level prompts
 │   ├── user/           # User prompts
-│   └── templates/      # Reusable prompt templates
+│   ├── templates/      # Reusable prompt templates
+│   ├── claude/         # Claude-specific prompts
+│   └── copilot/        # Copilot-specific prompts
 ├── mcp/                # Model Context Protocol configurations
 │   ├── servers/        # MCP server configurations
 │   ├── clients/        # MCP client configurations
-│   └── custom/         # Custom MCP implementations
+│   ├── custom/         # Custom MCP implementations
+│   ├── claude/         # Claude-specific MCP configs
+│   └── copilot/        # Copilot-specific MCP configs
 ├── tools/              # Tools and integrations
 │   ├── scripts/        # PowerShell utility scripts
 │   ├── plugins/        # Plugin configurations
-│   └── integrations/   # Third-party integrations
+│   ├── integrations/   # Third-party integrations
+│   ├── claude/         # Claude-specific tools
+│   └── copilot/        # Copilot-specific tools
 ├── modes/              # Operating modes and presets
 │   ├── profiles/       # Complete configuration profiles
 │   ├── presets/        # Quick-switch presets
-│   └── contexts/       # Context-specific configurations
+│   ├── contexts/       # Context-specific configurations
+│   ├── claude/         # Claude-specific modes
+│   └── copilot/        # Copilot-specific modes
 └── scripts/            # Management scripts (PowerShell)
     ├── install.ps1      # Installation script
     ├── uninstall.ps1    # Uninstallation script
@@ -60,13 +70,15 @@ agents/
     └── transform-*.ps1  # Format transformation scripts
 ```
 
-### Unified Agent Format
+### Unified vs Tool-Specific Files
 
-Agents are stored in a **single, unified format** that works across multiple tools. During installation, the scripts automatically transform and deploy them to:
-- **Claude Code CLI** (`~\.claude\agents\`)
-- **GitHub Copilot** (`%APPDATA%\GitHub Copilot\agents\`)
+- **Unified files** (in root directories): Work across multiple tools - maintain once, deploy everywhere
+- **Tool-specific files** (in `claude/` or `copilot/` subdirectories): Use advanced features specific to each tool
 
-This means you maintain one definition per agent, and it works with both tools.
+The installation script automatically:
+- Deploys unified files to both Claude Code CLI and GitHub Copilot
+- Deploys tool-specific files only to their respective tools
+- Transforms formats as needed during deployment
 
 ## Installation
 
@@ -102,11 +114,27 @@ You can customize these paths using environment variables (see [scripts/README.m
 
 1. Create a new file in `agents/my-agent.md` (or use the template generator)
    ```powershell
+   # Create a unified agent (works with both tools)
    .\scripts\new.ps1 -Type agent -Name my-agent
+   
+   # Create a Claude-specific agent
+   .\scripts\new.ps1 -Type agent -Name my-claude-agent -Tool claude
+   
+   # Create a Copilot-specific agent
+   .\scripts\new.ps1 -Type agent -Name my-copilot-agent -Tool copilot
    ```
-2. Define your agent's instructions and capabilities
+2. Define your agent's instructions and capabilities using YAML frontmatter:
+   ```markdown
+   ---
+   name: my-agent
+   description: Brief description
+   ---
+   
+   Agent instructions here...
+   ```
 3. Run `.\scripts\install.ps1 -Component agents` to deploy
-4. The agent will be automatically transformed and installed for both Claude Code CLI and GitHub Copilot
+4. Unified agents are automatically transformed and installed for both Claude Code CLI and GitHub Copilot
+5. Tool-specific agents are installed only to their respective tools
 
 ### Creating a Prompt Template
 

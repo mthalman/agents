@@ -4,9 +4,10 @@
 .SYNOPSIS
     Transform unified agent format to Claude Code CLI format
 .DESCRIPTION
-    Converts agents from the repository's unified format to Claude Code CLI specific format
+    Converts agents from the repository's unified format to Claude Code CLI specific format.
+    Supports both unified agents (root level) and Claude-specific agents (claude/ subdirectory).
 .PARAMETER SourceDir
-    Source directory containing unified agent definitions
+    Source directory containing agent definitions
 .PARAMETER TargetDir
     Target directory for Claude Code CLI configuration
 .PARAMETER DryRun
@@ -42,8 +43,8 @@ function Transform-AgentForClaude {
         [string]$TargetFile
     )
     
-    # For Claude Code CLI, the unified markdown format works directly
-    # Just copy the file as-is
+    # For Claude Code CLI, the format with YAML frontmatter works directly
+    # Copy the file as-is (assumes it uses the correct format)
     if ($DryRun) {
         Write-Info "Would transform: $SourceFile -> $TargetFile"
     } else {
@@ -64,13 +65,26 @@ if (-not (Test-Path $SourceDir)) {
     return
 }
 
-# Get all agent files (excluding README)
-$agentFiles = Get-ChildItem -Path $SourceDir -Filter *.md -Recurse | Where-Object { $_.Name -ne 'README.md' }
+# Process unified agents (files in root of agents/ directory)
+Write-Info "Processing unified agents..."
+$unifiedAgents = Get-ChildItem -Path $SourceDir -Filter *.md -File | Where-Object { $_.Name -ne 'README.md' }
 
-foreach ($file in $agentFiles) {
-    $relativePath = $file.FullName.Substring($SourceDir.Length + 1)
-    $targetFile = Join-Path $agentsTargetDir $relativePath
+foreach ($file in $unifiedAgents) {
+    $targetFile = Join-Path $agentsTargetDir $file.Name
     Transform-AgentForClaude -SourceFile $file.FullName -TargetFile $targetFile
+}
+
+# Process Claude-specific agents (files in agents/claude/ subdirectory)
+$claudeSpecificDir = Join-Path $SourceDir 'claude'
+if (Test-Path $claudeSpecificDir) {
+    Write-Info "Processing Claude-specific agents..."
+    $claudeAgents = Get-ChildItem -Path $claudeSpecificDir -Filter *.md -Recurse | Where-Object { $_.Name -ne 'README.md' }
+    
+    foreach ($file in $claudeAgents) {
+        $relativePath = $file.FullName.Substring($claudeSpecificDir.Length + 1)
+        $targetFile = Join-Path $agentsTargetDir $relativePath
+        Transform-AgentForClaude -SourceFile $file.FullName -TargetFile $targetFile
+    }
 }
 
 if (-not $DryRun) {

@@ -10,7 +10,7 @@ Quickly create new customization files from templates.
 
 **Usage:**
 ```powershell
-.\scripts\new.ps1 -Type <type> -Name <name>
+.\scripts\new.ps1 -Type <type> -Name <name> [-Tool <tool>]
 ```
 
 **Types:**
@@ -20,10 +20,21 @@ Quickly create new customization files from templates.
 - `tool-script` - Create a new tool script (PowerShell)
 - `mode-profile` - Create a new mode profile
 
+**Tool (for agents only):**
+- `unified` (default) - Create a unified agent that works with both Claude and Copilot
+- `claude` - Create a Claude Code CLI specific agent
+- `copilot` - Create a GitHub Copilot specific agent
+
 **Examples:**
 ```powershell
-# Create a new custom agent
+# Create a unified agent (works with both tools)
 .\scripts\new.ps1 -Type agent -Name my-code-reviewer
+
+# Create a Claude-specific agent
+.\scripts\new.ps1 -Type agent -Name my-claude-agent -Tool claude
+
+# Create a Copilot-specific agent
+.\scripts\new.ps1 -Type agent -Name my-copilot-agent -Tool copilot
 
 # Create a new prompt template
 .\scripts\new.ps1 -Type prompt -Name git-commit-message
@@ -115,13 +126,20 @@ $env:CLAUDE_CONFIG_DIR = "C:\custom\path"
 
 ## Unified Agent Format
 
-The installation scripts automatically transform agents from the unified format to each tool's specific requirements:
+The installation scripts support both unified and tool-specific agents:
 
-1. **Source** - Single markdown file in `agents/` directory
-2. **Transform** - Automatic conversion during installation
-3. **Deploy** - Installed to both Claude Code CLI and GitHub Copilot
+1. **Unified agents** (in `agents/` root) - Single markdown file that works with both Claude and Copilot
+2. **Tool-specific agents** (in `agents/claude/` or `agents/copilot/`) - Use advanced features specific to each tool
 
-This means you only need to maintain one version of each agent, and it will work with both tools.
+During installation, the scripts:
+- Transform unified agents and deploy to both Claude Code CLI and GitHub Copilot
+- Deploy tool-specific agents only to their respective tools
+- Tool-specific files take precedence over unified files if both exist
+
+This flexible approach allows you to:
+- Use unified format for most agents (simpler, less duplication)
+- Create tool-specific versions when you need advanced features
+- Mix and match as needed for your workflow
 
 ## Workflow
 

@@ -4,9 +4,10 @@
 .SYNOPSIS
     Transform unified agent format to GitHub Copilot format
 .DESCRIPTION
-    Converts agents from the repository's unified format to GitHub Copilot specific format
+    Converts agents from the repository's unified format to GitHub Copilot specific format.
+    Supports both unified agents (root level) and Copilot-specific agents (copilot/ subdirectory).
 .PARAMETER SourceDir
-    Source directory containing unified agent definitions
+    Source directory containing agent definitions
 .PARAMETER TargetDir
     Target directory for GitHub Copilot configuration
 .PARAMETER DryRun
@@ -43,7 +44,7 @@ function Transform-AgentForCopilot {
     )
     
     # For GitHub Copilot, the unified markdown format works directly
-    # Just copy the file as-is
+    # Copy the file as-is
     if ($DryRun) {
         Write-Info "Would transform: $SourceFile -> $TargetFile"
     } else {
@@ -64,13 +65,26 @@ if (-not (Test-Path $SourceDir)) {
     return
 }
 
-# Get all agent files (excluding README)
-$agentFiles = Get-ChildItem -Path $SourceDir -Filter *.md -Recurse | Where-Object { $_.Name -ne 'README.md' }
+# Process unified agents (files in root of agents/ directory)
+Write-Info "Processing unified agents..."
+$unifiedAgents = Get-ChildItem -Path $SourceDir -Filter *.md -File | Where-Object { $_.Name -ne 'README.md' }
 
-foreach ($file in $agentFiles) {
-    $relativePath = $file.FullName.Substring($SourceDir.Length + 1)
-    $targetFile = Join-Path $agentsTargetDir $relativePath
+foreach ($file in $unifiedAgents) {
+    $targetFile = Join-Path $agentsTargetDir $file.Name
     Transform-AgentForCopilot -SourceFile $file.FullName -TargetFile $targetFile
+}
+
+# Process Copilot-specific agents (files in agents/copilot/ subdirectory)
+$copilotSpecificDir = Join-Path $SourceDir 'copilot'
+if (Test-Path $copilotSpecificDir) {
+    Write-Info "Processing Copilot-specific agents..."
+    $copilotAgents = Get-ChildItem -Path $copilotSpecificDir -Filter *.md -Recurse | Where-Object { $_.Name -ne 'README.md' }
+    
+    foreach ($file in $copilotAgents) {
+        $relativePath = $file.FullName.Substring($copilotSpecificDir.Length + 1)
+        $targetFile = Join-Path $agentsTargetDir $relativePath
+        Transform-AgentForCopilot -SourceFile $file.FullName -TargetFile $targetFile
+    }
 }
 
 if (-not $DryRun) {

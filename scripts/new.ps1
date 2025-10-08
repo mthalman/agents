@@ -9,9 +9,14 @@
     Type of template to create (agent, prompt, mcp-server, tool-script, mode-profile)
 .PARAMETER Name
     Name for the new customization
+.PARAMETER Tool
+    For agents: specify tool (unified, claude, copilot). Default is 'unified' for cross-tool agents.
 .EXAMPLE
     .\new.ps1 -Type agent -Name my-code-reviewer
-    Create a new custom agent
+    Create a unified agent (works with both Claude and Copilot)
+.EXAMPLE
+    .\new.ps1 -Type agent -Name my-claude-agent -Tool claude
+    Create a Claude-specific agent
 .EXAMPLE
     .\new.ps1 -Type prompt -Name git-commit-message
     Create a new prompt template
@@ -24,7 +29,11 @@ param(
     [string]$Type,
     
     [Parameter(Mandatory=$true)]
-    [string]$Name
+    [string]$Name,
+    
+    [Parameter(Mandatory=$false)]
+    [ValidateSet('unified', 'claude', 'copilot')]
+    [string]$Tool = 'unified'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,29 +54,41 @@ function Write-Success {
 
 # Generate custom agent template
 function New-AgentTemplate {
-    param([string]$AgentName)
+    param(
+        [string]$AgentName,
+        [string]$ToolType
+    )
     
-    $filename = Join-Path $RepoRoot "agents\$AgentName.md"
+    # Determine the path based on tool type
+    $agentPath = switch ($ToolType) {
+        'claude' { Join-Path $RepoRoot "agents\claude\$AgentName.md" }
+        'copilot' { Join-Path $RepoRoot "agents\copilot\$AgentName.md" }
+        default { Join-Path $RepoRoot "agents\$AgentName.md" }
+    }
     
-    if (Test-Path $filename) {
-        Write-Info "File already exists: $filename"
+    if (Test-Path $agentPath) {
+        Write-Info "File already exists: $agentPath"
         $response = Read-Host "Overwrite? [y/N]"
         if ($response -ne 'y' -and $response -ne 'Y') {
             return
         }
     }
     
+    # Ensure directory exists
+    $dir = Split-Path $agentPath -Parent
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+    
     $date = Get-Date -Format 'yyyy-MM-dd'
+    
+    # Use Claude Code CLI format (YAML frontmatter) for all agents
+    # This format works for both Claude and Copilot
     $content = @"
-# Custom Agent: $AgentName
-
-## Agent Metadata
-- **Name**: $AgentName
-- **Type**: Custom
-- **Purpose**: [Describe the purpose of this agent]
-- **Created**: $date
-
-## Instructions
+---
+name: $AgentName
+description: [Brief description of what this agent does]
+---
 
 You are a specialized AI assistant designed to [describe the main function].
 
@@ -100,10 +121,13 @@ Your key responsibilities:
 
 - [Add any important notes]
 - [Include tips for using this agent]
+- Created: $date
 "@
     
-    $content | Out-File -FilePath $filename -Encoding UTF8
-    Write-Success "Created agent: $filename"
+    $content | Out-File -FilePath $agentPath -Encoding UTF8
+    
+    $toolInfo = if ($ToolType -eq 'unified') { 'unified (works with Claude & Copilot)' } else { "$ToolType-specific" }
+    Write-Success "Created $toolInfo agent: $agentPath"
     Write-Info "Edit the file to customize your agent"
 }
 
@@ -361,7 +385,7 @@ Activate this mode when:
 
 # Main
 switch ($Type) {
-    'agent' { New-AgentTemplate -AgentName $Name }
+    'agent' { New-AgentTemplate -AgentName $Name -ToolType $Tool }
     'prompt' { New-PromptTemplate -PromptName $Name }
     'mcp-server' { New-MCPServerConfig -ServerName $Name }
     'tool-script' { New-ToolScript -ScriptName $Name }
