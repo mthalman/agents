@@ -14,7 +14,7 @@ This repository provides a scaffolding system to organize and deploy:
 ## Quick Start
 
 1. **Clone this repository:**
-   ```bash
+   ```powershell
    git clone <your-repo-url>
    cd agents
    ```
@@ -22,23 +22,21 @@ This repository provides a scaffolding system to organize and deploy:
 2. **Add your customizations** to the appropriate directories (see structure below)
 
 3. **Preview installation:**
-   ```bash
-   ./scripts/install.sh --dry-run
+   ```powershell
+   .\scripts\install.ps1 -DryRun
    ```
 
 4. **Install to your system:**
-   ```bash
-   ./scripts/install.sh
+   ```powershell
+   .\scripts\install.ps1
    ```
 
 ## Repository Structure
 
 ```
 agents/
-├── agents/              # Custom AI agent configurations
-│   ├── claude/         # Claude-specific agents
-│   ├── copilot/        # GitHub Copilot agents
-│   └── custom/         # Custom agent definitions
+├── agents/              # Custom AI agent configurations (unified format)
+│   └── *.md            # Agent definitions that work with both Claude & Copilot
 ├── prompts/            # Prompt templates and collections
 │   ├── system/         # System-level prompts
 │   ├── user/           # User prompts
@@ -48,44 +46,53 @@ agents/
 │   ├── clients/        # MCP client configurations
 │   └── custom/         # Custom MCP implementations
 ├── tools/              # Tools and integrations
-│   ├── scripts/        # Utility scripts
+│   ├── scripts/        # PowerShell utility scripts
 │   ├── plugins/        # Plugin configurations
 │   └── integrations/   # Third-party integrations
 ├── modes/              # Operating modes and presets
 │   ├── profiles/       # Complete configuration profiles
 │   ├── presets/        # Quick-switch presets
 │   └── contexts/       # Context-specific configurations
-└── scripts/            # Management scripts
-    ├── install.sh      # Installation script
-    ├── uninstall.sh    # Uninstallation script
-    └── README.md       # Scripts documentation
+└── scripts/            # Management scripts (PowerShell)
+    ├── install.ps1      # Installation script
+    ├── uninstall.ps1    # Uninstallation script
+    ├── new.ps1          # Template generator
+    └── transform-*.ps1  # Format transformation scripts
 ```
+
+### Unified Agent Format
+
+Agents are stored in a **single, unified format** that works across multiple tools. During installation, the scripts automatically transform and deploy them to:
+- **Claude Code CLI** (`~\.claude\agents\`)
+- **GitHub Copilot** (`%APPDATA%\GitHub Copilot\agents\`)
+
+This means you maintain one definition per agent, and it works with both tools.
 
 ## Installation
 
 The installation script deploys your customizations to appropriate system locations:
 
-```bash
+```powershell
 # Install all components
-./scripts/install.sh
+.\scripts\install.ps1
 
 # Install specific components
-./scripts/install.sh agents prompts
+.\scripts\install.ps1 -Component agents,prompts
 
 # Create backups before overwriting
-./scripts/install.sh --backup
+.\scripts\install.ps1 -Backup
 
 # See what would be installed without making changes
-./scripts/install.sh --dry-run
+.\scripts\install.ps1 -DryRun
 ```
 
 ### Default Installation Paths
 
-- Claude: `~/.config/claude/`
-- GitHub Copilot: `~/.config/github-copilot/`
-- MCP: `~/.config/mcp/`
-- Tools: `~/.local/share/ai-tools/`
-- Modes: `~/.config/ai-modes/`
+- Claude: `~\.claude\`
+- GitHub Copilot: `%APPDATA%\GitHub Copilot\`
+- MCP: `~\.config\mcp\`
+- Tools: `%LOCALAPPDATA%\ai-tools\`
+- Modes: `~\.config\ai-modes\`
 
 You can customize these paths using environment variables (see [scripts/README.md](scripts/README.md)).
 
@@ -93,54 +100,66 @@ You can customize these paths using environment variables (see [scripts/README.m
 
 ### Adding a Custom Agent
 
-1. Create a new file in `agents/custom/my-agent.md`
+1. Create a new file in `agents/my-agent.md` (or use the template generator)
+   ```powershell
+   .\scripts\new.ps1 -Type agent -Name my-agent
+   ```
 2. Define your agent's instructions and capabilities
-3. Run `./scripts/install.sh agents` to deploy
-4. Reference the agent in your AI tool configuration
+3. Run `.\scripts\install.ps1 -Component agents` to deploy
+4. The agent will be automatically transformed and installed for both Claude Code CLI and GitHub Copilot
 
 ### Creating a Prompt Template
 
 1. Add a new file in `prompts/templates/my-template.md`
+   ```powershell
+   .\scripts\new.ps1 -Type prompt -Name my-template
+   ```
 2. Include metadata (tool, purpose, tags) in comments
 3. Write your prompt template
-4. Run `./scripts/install.sh prompts` to deploy
+4. Run `.\scripts\install.ps1 -Component prompts` to deploy
 
 ### Setting Up MCP Servers
 
 1. Create a configuration file in `mcp/servers/my-server.json`
+   ```powershell
+   .\scripts\new.ps1 -Type mcp-server -Name my-server
+   ```
 2. Define the server command and environment variables
-3. Run `./scripts/install.sh mcp` to deploy
+3. Run `.\scripts\install.ps1 -Component mcp` to deploy
 4. Restart your AI tools to load the new server
 
 ### Adding Utility Scripts
 
-1. Place your script in `tools/scripts/my-script.sh`
-2. Make it executable: `chmod +x tools/scripts/my-script.sh`
-3. Run `./scripts/install.sh tools` to deploy
-4. Access from `~/.local/share/ai-tools/scripts/`
+1. Place your PowerShell script in `tools/scripts/my-script.ps1`
+   ```powershell
+   .\scripts\new.ps1 -Type tool-script -Name my-script
+   ```
+2. Write your script logic
+3. Run `.\scripts\install.ps1 -Component tools` to deploy
+4. Access from `%LOCALAPPDATA%\ai-tools\scripts\`
 
 ## Syncing Across Machines
 
 This repository is designed to be version-controlled and shared:
 
 1. **Commit your customizations:**
-   ```bash
+   ```powershell
    git add .
    git commit -m "Add my customizations"
    git push
    ```
 
 2. **On another machine:**
-   ```bash
+   ```powershell
    git clone <your-repo-url>
    cd agents
-   ./scripts/install.sh
+   .\scripts\install.ps1
    ```
 
 3. **Update existing installations:**
-   ```bash
+   ```powershell
    git pull
-   ./scripts/install.sh --force
+   .\scripts\install.ps1 -Force
    ```
 
 ## Security Considerations
@@ -154,15 +173,15 @@ This repository is designed to be version-controlled and shared:
 
 To remove installed customizations:
 
-```bash
+```powershell
 # Remove all components (with confirmation)
-./scripts/uninstall.sh
+.\scripts\uninstall.ps1
 
 # Remove specific components
-./scripts/uninstall.sh mcp tools
+.\scripts\uninstall.ps1 -Component mcp,tools
 
 # Force remove without confirmation
-./scripts/uninstall.sh --force
+.\scripts\uninstall.ps1 -Force
 ```
 
 ## Contributing

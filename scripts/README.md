@@ -1,122 +1,132 @@
 # Scripts
 
-This directory contains utility scripts for managing AI agent customizations.
+This directory contains PowerShell scripts for managing AI agent customizations.
 
 ## Available Scripts
 
-### new.sh
+### new.ps1
 
 Quickly create new customization files from templates.
 
 **Usage:**
-```bash
-./scripts/new.sh [TYPE] [NAME]
+```powershell
+.\scripts\new.ps1 -Type <type> -Name <name>
 ```
 
 **Types:**
 - `agent` - Create a new custom agent
 - `prompt` - Create a new prompt template
 - `mcp-server` - Create a new MCP server configuration
-- `tool-script` - Create a new tool script
+- `tool-script` - Create a new tool script (PowerShell)
 - `mode-profile` - Create a new mode profile
 
 **Examples:**
-```bash
+```powershell
 # Create a new custom agent
-./scripts/new.sh agent my-code-reviewer
+.\scripts\new.ps1 -Type agent -Name my-code-reviewer
 
 # Create a new prompt template
-./scripts/new.sh prompt git-commit-message
+.\scripts\new.ps1 -Type prompt -Name git-commit-message
 
 # Create a new tool script
-./scripts/new.sh tool-script backup-configs
+.\scripts\new.ps1 -Type tool-script -Name backup-configs
 ```
 
-### install.sh
+### install.ps1
 
 Installs customizations from this repository to your system.
 
 **Usage:**
-```bash
-./scripts/install.sh [OPTIONS] [COMPONENT]
+```powershell
+.\scripts\install.ps1 [OPTIONS] [-Component <components>]
 ```
 
-**Options:**
-- `-h, --help` - Show help message
-- `-n, --dry-run` - Show what would be installed without making changes
-- `-f, --force` - Overwrite existing files
-- `-b, --backup` - Create backups before overwriting
-- `-v, --verbose` - Enable verbose output
-
-**Components:**
-- `all` - Install all components (default)
-- `agents` - Install only agent configurations
-- `prompts` - Install only prompts
-- `mcp` - Install only MCP configurations
-- `tools` - Install only tools
-- `modes` - Install only modes
+**Parameters:**
+- `-DryRun` - Show what would be installed without making changes
+- `-Force` - Overwrite existing files
+- `-Backup` - Create backups before overwriting
+- `-Verbose` - Enable verbose output
+- `-Component` - Specific components to install (all, agents, prompts, mcp, tools, modes)
 
 **Examples:**
-```bash
+```powershell
 # Dry run to preview changes
-./scripts/install.sh --dry-run
+.\scripts\install.ps1 -DryRun
 
 # Install all components
-./scripts/install.sh
+.\scripts\install.ps1
 
 # Install only MCP configurations with backup
-./scripts/install.sh --backup mcp
+.\scripts\install.ps1 -Backup -Component mcp
 
 # Install agents and prompts, forcing overwrite
-./scripts/install.sh --force agents prompts
+.\scripts\install.ps1 -Force -Component agents,prompts
 ```
 
-### uninstall.sh
+### uninstall.ps1
 
 Removes installed customizations from your system.
 
 **Usage:**
-```bash
-./scripts/uninstall.sh [OPTIONS] [COMPONENT]
+```powershell
+.\scripts\uninstall.ps1 [OPTIONS] [-Component <components>]
 ```
 
-**Options:**
-- `-h, --help` - Show help message
-- `-n, --dry-run` - Show what would be removed without making changes
-- `-f, --force` - Remove without confirmation
-- `-v, --verbose` - Enable verbose output
+**Parameters:**
+- `-DryRun` - Show what would be removed without making changes
+- `-Force` - Remove without confirmation
+- `-Verbose` - Enable verbose output
+- `-Component` - Specific components to remove (all, agents, prompts, mcp, tools, modes)
 
 **Examples:**
-```bash
+```powershell
 # Dry run to preview what would be removed
-./scripts/uninstall.sh --dry-run
+.\scripts\uninstall.ps1 -DryRun
 
 # Remove all components (with confirmation prompts)
-./scripts/uninstall.sh
+.\scripts\uninstall.ps1
 
 # Force remove MCP configurations
-./scripts/uninstall.sh --force mcp
+.\scripts\uninstall.ps1 -Force -Component mcp
 ```
+
+### Transformation Scripts
+
+These scripts are called automatically by `install.ps1`:
+
+- **transform-for-claude.ps1** - Transforms unified agent format to Claude Code CLI format
+- **transform-for-copilot.ps1** - Transforms unified agent format to GitHub Copilot format
 
 ## Environment Variables
 
 You can customize installation paths by setting these environment variables:
 
-- `CLAUDE_CONFIG_DIR` - Claude configuration directory (default: `~/.config/claude`)
-- `COPILOT_CONFIG_DIR` - GitHub Copilot configuration directory (default: `~/.config/github-copilot`)
-- `MCP_CONFIG_DIR` - MCP configuration directory (default: `~/.config/mcp`)
-- `TOOLS_DIR` - Tools installation directory (default: `~/.local/share/ai-tools`)
-- `MODES_DIR` - Modes configuration directory (default: `~/.config/ai-modes`)
+- `CLAUDE_CONFIG_DIR` - Claude configuration directory (default: `~\.claude`)
+- `COPILOT_CONFIG_DIR` - GitHub Copilot configuration directory (default: `%APPDATA%\GitHub Copilot`)
+- `MCP_CONFIG_DIR` - MCP configuration directory (default: `~\.config\mcp`)
+- `TOOLS_DIR` - Tools installation directory (default: `%LOCALAPPDATA%\ai-tools`)
+- `MODES_DIR` - Modes configuration directory (default: `~\.config\ai-modes`)
 
 **Example:**
-```bash
-CLAUDE_CONFIG_DIR=/custom/path ./scripts/install.sh agents
+```powershell
+$env:CLAUDE_CONFIG_DIR = "C:\custom\path"
+.\scripts\install.ps1 -Component agents
 ```
+
+## Unified Agent Format
+
+The installation scripts automatically transform agents from the unified format to each tool's specific requirements:
+
+1. **Source** - Single markdown file in `agents/` directory
+2. **Transform** - Automatic conversion during installation
+3. **Deploy** - Installed to both Claude Code CLI and GitHub Copilot
+
+This means you only need to maintain one version of each agent, and it will work with both tools.
 
 ## Workflow
 
 1. **Add customizations** to the appropriate directories in this repository
-2. **Test locally** using the dry-run option
+2. **Test locally** using the `-DryRun` parameter
 3. **Install** using the install script
 4. **Commit changes** to the repository for version control
 5. **Update** by pulling the latest changes and running install again

@@ -4,78 +4,67 @@ Get up and running with AI Agent Customizations in 5 minutes.
 
 ## Prerequisites
 
-- Bash shell (Linux, macOS, or WSL on Windows)
+- PowerShell 5.1 or later (included with Windows 10+)
 - Git installed
-- One or more AI tools (Claude, GitHub Copilot, etc.)
+- One or more AI tools (Claude Code CLI, GitHub Copilot, etc.)
 
 ## Step 1: Clone the Repository
 
-```bash
+```powershell
 git clone <your-repo-url>
 cd agents
 ```
 
 ## Step 2: Explore the Structure
 
-```bash
+```powershell
 # View the directory structure
-ls -la
+Get-ChildItem
 
 # Read the main README
-cat README.md
+Get-Content README.md
 
 # Check out example files
-cat agents/custom/example-code-review-agent.md
-cat prompts/templates/code-documentation.md
+Get-Content agents\example-code-review-agent.md
+Get-Content prompts\templates\code-documentation.md
 ```
 
 ## Step 3: Add Your First Customization
 
 Let's create a simple custom prompt:
 
-```bash
-# Create a new prompt file
-cat > prompts/user/explain-code.md << 'EOF'
-# Prompt: Code Explainer
-# Tool: Universal
-# Purpose: Explain code in simple terms
-# Tags: learning, education, code
-
-Please explain the following code in simple terms:
-1. What does it do?
-2. How does it work?
-3. Are there any potential issues?
-4. How could it be improved?
-
-Keep your explanation clear and accessible.
-EOF
+```powershell
+# Create a new prompt file using the template generator
+.\scripts\new.ps1 -Type prompt -Name explain-code
 ```
+
+Then edit `prompts\templates\explain-code.md` with your content.
 
 ## Step 4: Preview Installation
 
-```bash
+```powershell
 # See what would be installed without making changes
-./scripts/install.sh --dry-run
+.\scripts\install.ps1 -DryRun
 ```
 
 ## Step 5: Install Your Customizations
 
-```bash
+```powershell
 # Install all components
-./scripts/install.sh
+.\scripts\install.ps1
 
 # Or install only prompts
-./scripts/install.sh prompts
+.\scripts\install.ps1 -Component prompts
 ```
 
 ## Step 6: Verify Installation
 
-```bash
+```powershell
 # Check that files were copied
-ls ~/.config/ai-prompts/user/
+Get-ChildItem ~\.config\ai-prompts\templates\
 
 # View the installed file
-cat ~/.config/ai-prompts/user/explain-code.md
+Get-Content ~\.config\ai-prompts\templates\explain-code.md
 ```
 
 ## Step 7: Use Your Customization
@@ -87,9 +76,9 @@ In your AI tool:
 
 ## Step 8: Update and Commit
 
-```bash
+```powershell
 # Add your changes
-git add prompts/user/explain-code.md
+git add prompts\templates\explain-code.md
 
 # Commit
 git commit -m "Add code explainer prompt"
@@ -102,110 +91,114 @@ git push
 
 ### Add More Customizations
 
-```bash
-# Create a custom agent
-vi agents/custom/my-agent.md
+```powershell
+# Create a custom agent (unified format works with both Claude & Copilot)
+.\scripts\new.ps1 -Type agent -Name my-agent
 
 # Add an MCP server configuration
-vi mcp/servers/my-server.json
+.\scripts\new.ps1 -Type mcp-server -Name my-server
 
 # Create a utility script
-vi tools/scripts/my-script.sh
-chmod +x tools/scripts/my-script.sh
+.\scripts\new.ps1 -Type tool-script -Name my-script
 ```
 
 ### Sync to Another Machine
 
-```bash
+```powershell
 # On another machine
 git clone <your-repo-url>
 cd agents
-./scripts/install.sh --force
+.\scripts\install.ps1 -Force
 ```
 
 ### Update Existing Installations
 
-```bash
+```powershell
 # Make changes in the repository
-vi prompts/user/explain-code.md
+# Edit files as needed
 
 # Pull latest changes (if on another machine)
 git pull
 
 # Reinstall (force overwrite)
-./scripts/install.sh --force prompts
+.\scripts\install.ps1 -Force -Component prompts
 ```
 
 ### Create a Development Mode
 
-```bash
-# Copy the example
-cp modes/profiles/development-mode.md modes/profiles/my-dev-mode.md
+```powershell
+# Use the template generator
+.\scripts\new.ps1 -Type mode-profile -Name my-dev-mode
 
-# Customize it
-vi modes/profiles/my-dev-mode.md
+# Edit the file
+notepad modes\profiles\my-dev-mode.md
 
 # Install
-./scripts/install.sh modes
+.\scripts\install.ps1 -Component modes
 ```
 
 ## Tips
 
-1. **Use --dry-run first** to preview changes
-2. **Use --backup** when overwriting existing files
+1. **Use -DryRun first** to preview changes
+2. **Use -Backup** when overwriting existing files
 3. **Keep sensitive data out** of the repository
-4. **Organize by tool** if you use multiple AI assistants
-5. **Document your customizations** with clear descriptions
+4. **Unified agent format** - One agent definition works with both Claude and Copilot
+5. **Use template generator** - `.\scripts\new.ps1` creates properly formatted files
 
 ## Common Tasks
 
 ### Install with Backup
-```bash
-./scripts/install.sh --backup
+```powershell
+.\scripts\install.ps1 -Backup
 ```
 
 ### Install Specific Components
-```bash
-./scripts/install.sh agents mcp
+```powershell
+.\scripts\install.ps1 -Component agents,mcp
 ```
 
 ### Verbose Installation
-```bash
-./scripts/install.sh --verbose
+```powershell
+.\scripts\install.ps1 -Verbose
 ```
 
 ### Uninstall Everything
-```bash
-./scripts/uninstall.sh
+```powershell
+.\scripts\uninstall.ps1
 ```
 
 ### Custom Installation Path
-```bash
-TOOLS_DIR=/custom/path ./scripts/install.sh tools
+```powershell
+$env:TOOLS_DIR = "C:\custom\path"
+.\scripts\install.ps1 -Component tools
 ```
 
 ## Troubleshooting
 
 ### Scripts Won't Run
-```bash
-# Make sure scripts are executable
-chmod +x scripts/*.sh
+```powershell
+# Check execution policy
+Get-ExecutionPolicy
+
+# If needed, set execution policy (run as Administrator)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 ### Files Not Installing
-```bash
+```powershell
 # Check source files exist
-ls -la agents/custom/
-ls -la prompts/user/
+Get-ChildItem agents\
+Get-ChildItem prompts\templates\
 
 # Run with verbose output
-./scripts/install.sh --verbose
+.\scripts\install.ps1 -Verbose
 ```
 
 ### Wrong Installation Path
-```bash
+```powershell
 # Use environment variables
-CLAUDE_CONFIG_DIR=/path/to/claude ./scripts/install.sh agents
+$env:CLAUDE_CONFIG_DIR = "C:\path\to\claude"
+.\scripts\install.ps1 -Component agents
 ```
 
 ## Getting Help

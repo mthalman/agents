@@ -45,15 +45,15 @@ This is a personal customization repository, but you're welcome to fork it and a
 
 Before committing changes:
 
-```bash
+```powershell
 # Test dry-run
-./scripts/install.sh --dry-run
+.\scripts\install.ps1 -DryRun
 
 # Test actual installation
-./scripts/install.sh --verbose
+.\scripts\install.ps1 -Verbose
 
 # Verify files were installed correctly
-ls -la ~/.config/ai-prompts/
+Get-ChildItem ~\.config\ai-prompts\
 
 # Test your customizations in your AI tool
 
@@ -64,7 +64,7 @@ git commit -m "Add XYZ customization"
 
 ### Syncing Across Machines
 
-```bash
+```powershell
 # On Machine A - make changes and push
 git add .
 git commit -m "Update prompts"
@@ -72,7 +72,7 @@ git push
 
 # On Machine B - pull and install
 git pull
-./scripts/install.sh --force
+.\scripts\install.ps1 -Force
 ```
 
 ## Suggesting Improvements
@@ -123,16 +123,16 @@ If you create valuable customizations:
 4. **Create a new repository** with proper licensing
 5. **Share a link** in discussions/issues
 
-## Code Style
+### Code Style
 
-### Bash Scripts
+### PowerShell Scripts
 
-- Use `#!/usr/bin/env bash` shebang
-- Add `set -e` for error handling
-- Include help/usage functions
-- Use meaningful variable names
-- Comment complex logic
-- Test on multiple platforms if possible
+- Use `#Requires -Version 5.1` at the top
+- Add proper comment-based help
+- Use approved verbs for function names
+- Include parameter validation
+- Use `$ErrorActionPreference = 'Stop'`
+- Test on Windows PowerShell and PowerShell Core
 
 ### Markdown Files
 
@@ -155,22 +155,22 @@ If you create valuable customizations:
 
 If you want to extend the installation scripts:
 
-```bash
+```powershell
 # Fork the repository
-# Edit scripts/install.sh
+# Edit scripts\install.ps1
 # Test thoroughly
-# Document new options
+# Document new parameters
 # Consider submitting changes back
 ```
 
 ### Creating Additional Scripts
 
-You can add helper scripts to `scripts/`:
+You can add helper scripts to `scripts\`:
 
-- `sync.sh` - Sync with remote repository
-- `validate.sh` - Validate configurations
-- `template.sh` - Generate template files
-- `backup.sh` - Backup current configurations
+- `sync.ps1` - Sync with remote repository
+- `validate.ps1` - Validate configurations
+- `template.ps1` - Generate template files
+- `backup.ps1` - Backup current configurations
 
 ## Version Control
 
