@@ -13,17 +13,20 @@
     Create backups of existing files before overwriting
 .PARAMETER Verbose
     Enable verbose output
-.PARAMETER Component
-    Specific components to install (all, agents, prompts, mcp, tools, modes)
+.PARAMETER Tool
+    Specific tools to install (all, claude, copilot)
 .EXAMPLE
     .\install.ps1 -DryRun
     Preview what would be installed
 .EXAMPLE
-    .\install.ps1 -Component agents,prompts
-    Install only agents and prompts
-.EXAMPLE
     .\install.ps1 -Backup -Force
-    Install all components with backup and force overwrite
+    Install all tools with backup and force overwrite
+.EXAMPLE
+    .\install.ps1 -Tool claude
+    Install only Claude customizations
+.EXAMPLE
+    .\install.ps1 -Tool common
+    Install common content to both Claude and Copilot
 #>
 
 [CmdletBinding()]
@@ -31,63 +34,31 @@ param(
     [switch]$DryRun,
     [switch]$Force,
     [switch]$Backup,
-    [ValidateSet('all', 'agents', 'prompts', 'mcp', 'tools', 'modes')]
-    [string[]]$Component = @('all')
+    [ValidateSet('all', 'claude', 'copilot')]
+    [string[]]$Tool = @('all')
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # Get repository root
 $ScriptDir = $PSScriptRoot
 $RepoRoot = Split-Path $ScriptDir -Parent
 
-# Get home directory (cross-platform)
-$HomeDir = if ($env:USERPROFILE) { $env:USERPROFILE } else { $env:HOME }
+# Import common functions
+. (Join-Path $ScriptDir 'common.ps1')
 
-# Default installation paths
-$ClaudeConfigDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HomeDir '.claude' }
-$CopilotConfigDir = if ($env:COPILOT_CONFIG_DIR) { $env:COPILOT_CONFIG_DIR } elseif ($env:APPDATA) { Join-Path $env:APPDATA 'GitHub Copilot' } else { Join-Path $HomeDir '.config/github-copilot' }
-$MCPConfigDir = if ($env:MCP_CONFIG_DIR) { $env:MCP_CONFIG_DIR } else { Join-Path $HomeDir '.config/mcp' }
-$ToolsDir = if ($env:TOOLS_DIR) { $env:TOOLS_DIR } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'ai-tools' } else { Join-Path $HomeDir '.local/share/ai-tools' }
-$ModesDir = if ($env:MODES_DIR) { $env:MODES_DIR } else { Join-Path $HomeDir '.config/ai-modes' }
+# Get configuration directories
+$ConfigDirs = Get-ConfigDirectories
 
-# Logging functions
-function Write-Info {
-    param([string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Blue
-}
+$ClaudeConfigDir = $ConfigDirs.Claude.Root
+$ClaudeAgentsDir = Join-Path $ClaudeConfigDir 'agents'
+$ClaudeCommandsDir = Join-Path $ClaudeConfigDir 'commands'
+$ClaudeOutputStylesDir = Join-Path $ClaudeConfigDir 'output-styles'
 
-function Write-Success {
-    param([string]$Message)
-    Write-Host "[SUCCESS] $Message" -ForegroundColor Green
-}
-
-function Write-Warning {
-    param([string]$Message)
-    Write-Host "[WARNING] $Message" -ForegroundColor Yellow
-}
-
-function Write-Error {
-    param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
-}
-
-# Create a backup of a file
-function Backup-File {
-    param([string]$FilePath)
-    
-    if (Test-Path $FilePath) {
-        $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-        $backupPath = "$FilePath.backup.$timestamp"
-        
-        if ($DryRun) {
-            Write-Info "Would backup: $FilePath -> $backupPath"
-        } else {
-            Copy-Item -Path $FilePath -Destination $backupPath -Force
-            Write-Success "Created backup: $backupPath"
-        }
-    }
-}
+$CopilotConfigDir = $ConfigDirs.Copilot.Root
+$CopilotPromptsDir = Join-Path $CopilotConfigDir 'prompts'
+$CopilotModesDir = Join-Path $CopilotConfigDir 'modes'
 
 # Copy files from source to destination
 function Install-Files {
@@ -118,8 +89,10 @@ function Install-Files {
     }
     
     # Count files to install
-    $files = Get-ChildItem -Path $Source -File -Recurse | Where-Object { $_.Name -ne 'README.md' }
-    if ($files.Count -eq 0) {
+    $files = Get-ChildItem -Path $Source -File -Recurse | Where-Object { 
+        $_.Name -ne 'README.md' -and $_.Name -ne '.template.md' 
+    }
+    if (-not $files -or @($files).Count -eq 0) {
         Write-Warning "No files to install in $Source"
         return
     }
@@ -149,15 +122,25 @@ function Install-Files {
             }
             
             if ($Backup) {
-                Backup-File $destFile
+                Backup-File -FilePath $destFile -DryRun:$DryRun
             }
         }
         
-        # Copy file
+        # Copy file (with include processing for text files)
         if ($DryRun) {
             Write-Info "Would install: $relativePath -> $destFile"
         } else {
-            Copy-Item -Path $file.FullName -Destination $destFile -Force
+            $extension = [System.IO.Path]::GetExtension($file.FullName).ToLower()
+            if ($extension -in @('.md', '.txt', '.json', '.yaml', '.yml')) {
+                # Process includes for text files
+                $content = Get-Content -Path $file.FullName -Raw -Encoding UTF8
+                $processedContent = Resolve-Includes -Content $content -RepoRoot $RepoRoot
+                $processedContent | Out-File -FilePath $destFile -Encoding UTF8 -NoNewline
+            } else {
+                # Binary copy for other files
+                Copy-Item -Path $file.FullName -Destination $destFile -Force
+            }
+            
             if ($VerbosePreference -eq 'Continue') {
                 Write-Success "Installed: $relativePath"
             }
@@ -167,105 +150,44 @@ function Install-Files {
     Write-Success "Finished installing $Description"
 }
 
-# Transform and install agents
-function Install-Agents {
-    Write-Info "=== Installing Agent Configurations ==="
+# Install Claude-specific customizations
+function Install-Claude {
+    Write-Info "=== Installing Claude Customizations ==="
     
-    # Source agents (unified format)
-    $sourceDir = Join-Path $RepoRoot 'agents'
-    
-    # Transform and install for Claude
-    $transformScript = Join-Path $ScriptDir 'transform-for-claude.ps1'
-    if (Test-Path $transformScript) {
-        Write-Info "Transforming agents for Claude Code CLI..."
-        & $transformScript -SourceDir $sourceDir -TargetDir $ClaudeConfigDir -DryRun:$DryRun -Verbose:($VerbosePreference -eq 'Continue')
-    } else {
-        # Fallback: direct copy
-        $claudeAgentsDir = Join-Path $ClaudeConfigDir 'agents'
-        Install-Files -Source $sourceDir -Destination $claudeAgentsDir -Description 'Claude agents'
+    # Claude agents
+    $sourceAgentsDir = Join-Path $RepoRoot 'claude/agents'
+    if (Test-Path $sourceAgentsDir) {
+        Install-Files -Source $sourceAgentsDir -Destination $ClaudeAgentsDir -Description 'Claude agents'
     }
-    
-    # Transform and install for Copilot
-    $transformScript = Join-Path $ScriptDir 'transform-for-copilot.ps1'
-    if (Test-Path $transformScript) {
-        Write-Info "Transforming agents for GitHub Copilot..."
-        & $transformScript -SourceDir $sourceDir -TargetDir $CopilotConfigDir -DryRun:$DryRun -Verbose:($VerbosePreference -eq 'Continue')
-    } else {
-        # Fallback: direct copy
-        $copilotAgentsDir = Join-Path $CopilotConfigDir 'agents'
-        Install-Files -Source $sourceDir -Destination $copilotAgentsDir -Description 'Copilot agents'
+
+    # Claude commands
+    $sourceCommandsDir = Join-Path $RepoRoot 'claude/commands'
+    if (Test-Path $sourceCommandsDir) {
+        Install-Files -Source $sourceCommandsDir -Destination $ClaudeCommandsDir -Description 'Claude commands'
+    }
+
+    # Claude output styles
+    $sourceOutputStylesDir = Join-Path $RepoRoot 'claude/output-styles'
+    if (Test-Path $sourceOutputStylesDir) {
+        Install-Files -Source $sourceOutputStylesDir -Destination $ClaudeOutputStylesDir -Description 'Claude output styles'
     }
 }
 
-# Install prompts
-function Install-Prompts {
-    Write-Info "=== Installing Prompts ==="
-    $promptsSourceDir = Join-Path $RepoRoot 'prompts'
-    $destDir = Join-Path $HomeDir '.config/ai-prompts'
-    Install-Files -Source $promptsSourceDir -Destination $destDir -Description 'prompts'
-}
-
-# Install MCP configurations
-function Install-MCP {
-    Write-Info "=== Installing MCP Configurations ==="
+# Install Copilot-specific customizations
+function Install-Copilot {
+    Write-Info "=== Installing Copilot Customizations ==="
     
-    $mcpSourceDir = Join-Path $RepoRoot 'mcp'
-    
-    # MCP servers
-    $serversDir = Join-Path $mcpSourceDir 'servers'
-    if (Test-Path $serversDir) {
-        $destDir = Join-Path $MCPConfigDir 'servers'
-        Install-Files -Source $serversDir -Destination $destDir -Description 'MCP servers'
+    # Copilot modes
+    $sourceModesDir = Join-Path $RepoRoot 'copilot/modes'
+    if (Test-Path $sourceModesDir) {
+        Install-Files -Source $sourceModesDir -Destination $CopilotModesDir -Description 'Copilot modes'
     }
     
-    # MCP clients
-    $clientsDir = Join-Path $mcpSourceDir 'clients'
-    if (Test-Path $clientsDir) {
-        $destDir = Join-Path $MCPConfigDir 'clients'
-        Install-Files -Source $clientsDir -Destination $destDir -Description 'MCP clients'
+    # Copilot prompts
+    $sourcePromptsDir = Join-Path $RepoRoot 'copilot/prompts'
+    if (Test-Path $sourcePromptsDir) {
+        Install-Files -Source $sourcePromptsDir -Destination $CopilotPromptsDir -Description 'Copilot prompts'
     }
-    
-    # Custom MCP
-    $customDir = Join-Path $mcpSourceDir 'custom'
-    if (Test-Path $customDir) {
-        $destDir = Join-Path $MCPConfigDir 'custom'
-        Install-Files -Source $customDir -Destination $destDir -Description 'Custom MCP'
-    }
-}
-
-# Install tools
-function Install-Tools {
-    Write-Info "=== Installing Tools ==="
-    
-    $toolsSourceDir = Join-Path $RepoRoot 'tools'
-    
-    # Scripts
-    $scriptsDir = Join-Path $toolsSourceDir 'scripts'
-    if (Test-Path $scriptsDir) {
-        $destDir = Join-Path $ToolsDir 'scripts'
-        Install-Files -Source $scriptsDir -Destination $destDir -Description 'tool scripts'
-    }
-    
-    # Plugins
-    $pluginsDir = Join-Path $toolsSourceDir 'plugins'
-    if (Test-Path $pluginsDir) {
-        $destDir = Join-Path $ToolsDir 'plugins'
-        Install-Files -Source $pluginsDir -Destination $destDir -Description 'tool plugins'
-    }
-    
-    # Integrations
-    $integrationsDir = Join-Path $toolsSourceDir 'integrations'
-    if (Test-Path $integrationsDir) {
-        $destDir = Join-Path $ToolsDir 'integrations'
-        Install-Files -Source $integrationsDir -Destination $destDir -Description 'integrations'
-    }
-}
-
-# Install modes
-function Install-Modes {
-    Write-Info "=== Installing Modes ==="
-    $modesSourceDir = Join-Path $RepoRoot 'modes'
-    Install-Files -Source $modesSourceDir -Destination $ModesDir -Description 'modes'
 }
 
 # Main installation logic
@@ -279,21 +201,19 @@ function Main {
     
     Write-Host ""
     
-    # Process components
-    foreach ($comp in $Component) {
-        switch ($comp) {
+    # Process tools
+    foreach ($t in $Tool) {
+        switch ($t) {
             'all' {
-                Install-Agents
-                Install-Prompts
-                Install-MCP
-                Install-Tools
-                Install-Modes
+                Install-Claude
+                Install-Copilot
             }
-            'agents' { Install-Agents }
-            'prompts' { Install-Prompts }
-            'mcp' { Install-MCP }
-            'tools' { Install-Tools }
-            'modes' { Install-Modes }
+            'claude' { 
+                Install-Claude 
+            }
+            'copilot' { 
+                Install-Copilot 
+            }
         }
         Write-Host ""
     }
