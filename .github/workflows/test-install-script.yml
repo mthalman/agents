@@ -1,0 +1,78 @@
+name: Test Install Script
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/test-install-script.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/test-install-script.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      matrix:
+        include:
+          - os: Windows
+            runner: windows-latest
+            install_powershell: false
+          - os: Linux
+            runner: ubuntu-latest
+            install_powershell: true
+            install_cmd: |
+              sudo apt-get update
+              sudo apt-get install -y wget apt-transport-https software-properties-common
+              wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb
+              sudo dpkg -i packages-microsoft-prod.deb
+              sudo apt-get update
+              sudo apt-get install -y powershell
+          - os: macOS
+            runner: macos-latest
+            install_powershell: true
+            install_cmd: brew install --cask powershell
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install PowerShell Core
+      if: matrix.install_powershell
+      run: ${{ matrix.install_cmd }}
+
+    - name: Install Pester
+      shell: pwsh
+      run: |
+        Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser
+
+    - name: Run Tests
+      shell: pwsh
+      run: |
+        $env:CI = "true"
+        if ("${{ matrix.os }}" -eq "Linux") {
+          $env:IsWindows = $false
+        }
+        Invoke-Pester -Path ./scripts/install.tests.ps1 -Output Detailed -PassThru |
+          Export-JUnitReport -Path ./test-results.xml
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}
+        path: test-results.xml
+
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: test-results.xml
+        check_name: ${{ matrix.os }} Test Results
+        comment_mode: off

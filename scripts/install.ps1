@@ -15,6 +15,8 @@
     Enable verbose output
 .PARAMETER Tool
     Specific tools to install (all, claude, copilot)
+.PARAMETER ShowExtra
+    Only show extra files summary without installing
 .EXAMPLE
     .\install.ps1 -DryRun
     Preview what would be installed
@@ -27,6 +29,9 @@
 .EXAMPLE
     .\install.ps1 -Tool common
     Install common content to both Claude and Copilot
+.EXAMPLE
+    .\install.ps1 -ShowExtra
+    Show only extra files that exist in install locations but not in source
 #>
 
 [CmdletBinding()]
@@ -34,6 +39,7 @@ param(
     [switch]$DryRun,
     [switch]$Force,
     [switch]$Backup,
+    [switch]$ShowExtra,
     [ValidateSet('all', 'claude', 'copilot')]
     [string[]]$Tool = @('all')
 )
@@ -43,7 +49,7 @@ $ErrorActionPreference = 'Stop'
 
 # Get repository root
 $ScriptDir = $PSScriptRoot
-$RepoRoot = Split-Path $ScriptDir -Parent
+$RepoRoot = if ($env:TEST_REPO_ROOT) { $env:TEST_REPO_ROOT } else { Split-Path $ScriptDir -Parent }
 
 # Import common functions
 . (Join-Path $ScriptDir 'common.ps1')
@@ -59,6 +65,264 @@ $ClaudeOutputStylesDir = Join-Path $ClaudeConfigDir 'output-styles'
 $CopilotConfigDir = $ConfigDirs.Copilot.Root
 $CopilotPromptsDir = Join-Path $CopilotConfigDir 'prompts'
 $CopilotModesDir = Join-Path $CopilotConfigDir 'modes'
+
+# Check for extra files in destination that don't exist in source
+function Get-ExtraFiles {
+    param(
+        [string]$Source,
+        [string]$Destination,
+        [string]$Description
+    )
+
+    $extraFiles = @()
+
+    if (-not (Test-Path $Destination)) {
+        return $extraFiles
+    }
+
+    $destFiles = Get-ChildItem -Path $Destination -File -Recurse -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -ne 'README.md' -and $_.Name -ne '.template.md'
+    }
+
+    if ($destFiles) {
+        foreach ($destFile in $destFiles) {
+            $relativePath = $destFile.FullName.Substring($Destination.Length + 1)
+            $sourceFile = Join-Path $Source $relativePath
+
+            if (-not (Test-Path $sourceFile)) {
+                $extraFiles += [PSCustomObject]@{
+                    Path = $relativePath
+                    FullPath = $destFile.FullName
+                    Size = $destFile.Length
+                    LastModified = $destFile.LastWriteTime
+                }
+            }
+        }
+    }
+
+    return $extraFiles
+}
+
+# Process and display extra files for a specific location
+function Process-ExtraFiles {
+    param(
+        [string]$Source,
+        [string]$Destination,
+        [string]$Description,
+        [string]$DisplayName
+    )
+
+    $extraFiles = @(Get-ExtraFiles -Source $Source -Destination $Destination -Description $Description)
+
+    if ($extraFiles.Count -gt 0) {
+        Write-Info "$DisplayName ($Destination):"
+        foreach ($file in $extraFiles) {
+            Write-Host "  📄 $($file.Path) ($(Format-FileSize $file.Size), modified $($file.LastModified.ToString('yyyy-MM-dd')))" -ForegroundColor Yellow
+        }
+        Write-Host ""
+    }
+
+    return $extraFiles
+}
+
+# Summarize extra files across all install locations
+function Show-ExtraFilesSummary {
+    param(
+        [switch]$AllowDelete
+    )
+
+    Write-Info "=== Extra Files Summary ==="
+    Write-Info "Files that exist in install locations but not in source repository:"
+    Write-Host ""
+
+    $allExtraFiles = @()
+
+    # Define location mappings
+    $locationMappings = @()
+
+    # Add Claude locations if applicable
+    if ('claude' -in $Tool -or 'all' -in $Tool) {
+        $locationMappings += @{
+            Source = Join-Path $RepoRoot 'claude/agents'
+            Destination = $ClaudeAgentsDir
+            Description = 'Claude agents'
+            DisplayName = 'Claude Agents'
+        }
+        $locationMappings += @{
+            Source = Join-Path $RepoRoot 'claude/commands'
+            Destination = $ClaudeCommandsDir
+            Description = 'Claude commands'
+            DisplayName = 'Claude Commands'
+        }
+        $locationMappings += @{
+            Source = Join-Path $RepoRoot 'claude/output-styles'
+            Destination = $ClaudeOutputStylesDir
+            Description = 'Claude output styles'
+            DisplayName = 'Claude Output Styles'
+        }
+    }
+
+    # Add Copilot locations if applicable
+    if ('copilot' -in $Tool -or 'all' -in $Tool) {
+        $locationMappings += @{
+            Source = Join-Path $RepoRoot 'copilot/modes'
+            Destination = $CopilotModesDir
+            Description = 'Copilot modes'
+            DisplayName = 'Copilot Modes'
+        }
+        $locationMappings += @{
+            Source = Join-Path $RepoRoot 'copilot/prompts'
+            Destination = $CopilotPromptsDir
+            Description = 'Copilot prompts'
+            DisplayName = 'Copilot Prompts'
+        }
+    }
+
+    # Process each location and collect extra files
+    foreach ($location in $locationMappings) {
+        $extraFiles = Process-ExtraFiles @location
+        $allExtraFiles += $extraFiles
+    }
+
+    $totalExtraFiles = $allExtraFiles.Count
+    $hasExtraFiles = $totalExtraFiles -gt 0
+
+    if (-not $hasExtraFiles) {
+        Write-Success "✅ No extra files found - install locations match source repository"
+    } else {
+        Write-Warning "⚠️  Found $totalExtraFiles extra file(s) in install locations"
+        Write-Info "These files may be:"
+        Write-Info "  • Custom configurations you've created"
+        Write-Info "  • Files from previous installations"
+        Write-Info "  • Backup files that weren't cleaned up"
+        Write-Info ""
+
+        # Prompt for deletion if allowed and not in DryRun mode
+        # Skip interactive prompts in test environments
+        $isInTest = $false
+        try {
+            # Check if we're running in a Pester test context
+            $isInTest = (Get-Command 'Describe' -ErrorAction SilentlyContinue) -and
+                       (Get-Variable 'PesterPreference' -ErrorAction SilentlyContinue)
+        } catch {
+            $isInTest = $false
+        }
+
+        if ($AllowDelete -and -not $DryRun -and -not $isInTest) {
+            Write-Host ""
+            Write-Warning "Delete Extra Files?"
+            Write-Host "You can choose to delete files individually or all at once." -ForegroundColor Yellow
+            Write-Host ""
+
+            $response = Read-Host "How would you like to proceed? (each/all/skip) [skip]"
+
+            switch (($response ?? "skip").ToLower()) {
+                'all' {
+                    Write-Info "Deleting all extra files..."
+                    $deletedCount = 0
+                    foreach ($file in $allExtraFiles) {
+                        try {
+                            Remove-Item -Path $file.FullPath -Force
+                            Write-Success "  ✓ Deleted: $($file.Path)"
+                            $deletedCount++
+                        } catch {
+                            Write-Warning "  ✗ Failed to delete: $($file.Path) - $_"
+                        }
+                    }
+                    Write-Success "Deleted $deletedCount of $totalExtraFiles extra file(s)"
+                    Write-Host ""
+                }
+                'each' {
+                    Write-Info "Reviewing each file individually..."
+                    Write-Info "Options: y=yes (delete), n=no (keep), all=delete all remaining, stop=stop reviewing"
+                    Write-Host ""
+                    $deletedCount = 0
+                    $keepCount = 0
+                    $skipCount = 0
+
+                    for ($i = 0; $i -lt $allExtraFiles.Count; $i++) {
+                        $file = $allExtraFiles[$i]
+                        $remaining = $allExtraFiles.Count - $i
+
+                        Write-Host "File $($i + 1) of $($allExtraFiles.Count): $($file.Path)" -ForegroundColor Cyan
+                        Write-Host "  Size: $(Format-FileSize $file.Size)"
+                        Write-Host "  Modified: $($file.LastModified.ToString('yyyy-MM-dd HH:mm'))"
+
+                        $fileResponse = Read-Host "Delete this file? (y/n/all/stop) [n]"
+
+                        switch (($fileResponse ?? "n").ToLower()) {
+                            'y' {
+                                try {
+                                    Remove-Item -Path $file.FullPath -Force
+                                    Write-Success "  ✓ Deleted: $($file.Path)"
+                                    $deletedCount++
+                                } catch {
+                                    Write-Warning "  ✗ Failed to delete: $($file.Path) - $_"
+                                }
+                            }
+                            'all' {
+                                Write-Info "Deleting all remaining files..."
+                                for ($j = $i; $j -lt $allExtraFiles.Count; $j++) {
+                                    $remainingFile = $allExtraFiles[$j]
+                                    try {
+                                        Remove-Item -Path $remainingFile.FullPath -Force
+                                        Write-Success "  ✓ Deleted: $($remainingFile.Path)"
+                                        $deletedCount++
+                                    } catch {
+                                        Write-Warning "  ✗ Failed to delete: $($remainingFile.Path) - $_"
+                                    }
+                                }
+                                $skipCount = $remaining - 1
+                                break
+                            }
+                            'stop' {
+                                Write-Info "Stopped reviewing files."
+                                $skipCount = $remaining - 1
+                                break
+                            }
+                            default {
+                                Write-Info "  ✓ Kept: $($file.Path)"
+                                $keepCount++
+                            }
+                        }
+
+                        if ($fileResponse.ToLower() -eq 'all' -or $fileResponse.ToLower() -eq 'stop') {
+                            break
+                        }
+
+                        Write-Host ""
+                    }
+
+                    if ($skipCount -gt 0) {
+                        Write-Info "Summary: Deleted $deletedCount file(s), kept $keepCount file(s), skipped $skipCount file(s)"
+                    } else {
+                        Write-Info "Summary: Deleted $deletedCount file(s), kept $keepCount file(s)"
+                    }
+                    Write-Host ""
+                }
+                default {
+                    Write-Info "Extra files were not deleted."
+                }
+            }
+        } elseif ($isInTest) {
+            Write-Info "Running in test environment - skipping interactive prompts"
+        } elseif (-not $AllowDelete) {
+            Write-Info "Consider backing up important custom files before running with -Force"
+        }
+    }
+
+    Write-Host ""
+}
+
+# Format file size in human-readable format
+function Format-FileSize {
+    param([long]$Size)
+
+    if ($Size -lt 1KB) { return "$Size B" }
+    elseif ($Size -lt 1MB) { return "{0:N1} KB" -f ($Size / 1KB) }
+    elseif ($Size -lt 1GB) { return "{0:N1} MB" -f ($Size / 1MB) }
+    else { return "{0:N1} GB" -f ($Size / 1GB) }
+}
 
 # Copy files from source to destination
 function Install-Files {
@@ -194,13 +458,23 @@ function Install-Copilot {
 function Main {
     Write-Info "AI Agent Customizations Installation"
     Write-Info "Repository: $RepoRoot"
-    
+
+    if ($ShowExtra) {
+        # Only show extra files summary and exit
+        Show-ExtraFilesSummary -AllowDelete
+        return
+    }
+
     if ($DryRun) {
         Write-Warning "DRY RUN MODE - No changes will be made"
     }
-    
+
     Write-Host ""
-    
+
+    # Show extra files summary before installation
+    # Allow deletion prompt only if not in DryRun mode
+    Show-ExtraFilesSummary -AllowDelete:(-not $DryRun)
+
     # Process tools
     foreach ($t in $Tool) {
         switch ($t) {
@@ -208,16 +482,16 @@ function Main {
                 Install-Claude
                 Install-Copilot
             }
-            'claude' { 
-                Install-Claude 
+            'claude' {
+                Install-Claude
             }
-            'copilot' { 
-                Install-Copilot 
+            'copilot' {
+                Install-Copilot
             }
         }
         Write-Host ""
     }
-    
+
     if ($DryRun) {
         Write-Info "Dry run complete. Run without -DryRun to apply changes."
     } else {
