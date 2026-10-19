@@ -31,6 +31,14 @@ files.
 `.version-bump.json` lists the plugin manifests whose `version` fields must
 stay synchronized: `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`.
 
+## Session retrospectives
+
+`skills/retrospective/SKILL.md` defines a client-neutral, report-only review of
+agent-session mistakes and inefficiencies. It cites observable evidence,
+distinguishes instruction gaps from noncompliance, and proposes minimal edits
+without applying them. Its analysis guide includes manual acceptance scenarios
+for retry loops, justified exploration, and incomplete or untrusted transcripts.
+
 ## Python Script Execution
 
 ### UTF-8 Encoding

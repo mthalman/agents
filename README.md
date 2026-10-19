@@ -103,6 +103,15 @@ commands and custom agents remain separate from the shared skills directory.
 Keep the plugin name, version, description, and skills path aligned in both
 plugin manifests. Marketplace entries point at the repository root.
 
+## Session retrospectives
+
+Ask for a "session retrospective" to review the agent's mistakes, avoidable
+rework, and inefficiencies. The [retrospective skill](skills/retrospective/SKILL.md)
+uses the current conversation by default, cites session evidence, and proposes
+specific instruction changes with validation scenarios. It distinguishes
+missing guidance from failures to follow existing rules and does not apply its
+proposals. For another session, identify it or provide its transcript.
+
 ## Validation
 
 Run the focused scaffold and skill-reference checks:
