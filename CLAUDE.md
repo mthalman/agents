@@ -30,6 +30,7 @@ files.
 
 `.version-bump.json` lists the plugin manifests whose `version` fields must
 stay synchronized: `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`.
+Minor version updates increment the minor component and reset the patch to zero.
 
 ## Session retrospectives
 
