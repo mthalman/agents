@@ -118,6 +118,14 @@ Run its focused tests with:
 Invoke-Pester -Path tests/markdown-toolkit/MarkdownToolkit.Tests.ps1 -Output Detailed
 ```
 
+## Project Documentation Skill
+
+`skills/project-documentation/SKILL.md` guides repository-grounded creation,
+review, and improvement of project documentation. It complements
+`technical-writing` for prose and document modes, and `markdown-toolkit` for
+Markdown mechanics; its references cover proportional structure, examples,
+validation, and safe handling of unverified claims.
+
 ## Address PR Comments Command
 
 `commands/address-pr-comments.md` supports both GitHub and Azure DevOps PRs through a shared provider-neutral workflow. Deterministic provider helpers live in `scripts/address-pr-comments-support.psm1`; focused fixtures and Pester coverage live in `tests/address-pr-comments/`.
