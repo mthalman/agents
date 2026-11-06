@@ -18,8 +18,12 @@ Create only the documentation the project needs; preserve useful existing work.
 
 Use this workflow for project-level documentation decisions and factual checks,
 not as a replacement for specialist skills. Use technical-writing for prose and
-document modes, and markdown-toolkit for Markdown mechanics and validation when
-available. For an interview to discover an undocumented process, use
+document-type guidance, and markdown-toolkit for Markdown mechanics and
+validation when available. Technical-writing is explicitly invoked; call it
+deliberately rather than relying on automatic discovery. If invocation by name
+is unavailable, read [the bundled technical-writing skill](../technical-writing/SKILL.md)
+and follow its instructions, including its applicable document-type references
+and required `unslop` review. For an interview to discover an undocumented process, use
 documenting-workflows. Follow repository conventions if these skills are absent;
 do not assume their helpers exist in the target repository.
 
@@ -82,7 +86,9 @@ the docs toolchain, impose a folder template, or rewrite unaffected prose.
 
 ### 5. Draft the common path
 
-Use technical-writing when available. Put essential prerequisites and safety
+Invoke technical-writing when available and load only its references for the
+document types being changed: README, procedure, reference overview, or design
+and explanation. Put essential prerequisites and safety
 conditions before the actions they constrain. Present one common path with an
 observable result, then relevant troubleshooting and optional branches. Link to
 authoritative detail instead of copying large option catalogs.
@@ -101,6 +107,10 @@ command does before running it. Run the smallest safe example or test relevant
 to changed behavior, then applicable link, Markdown, docs-build, and rendering
 checks. Inspect all changed examples; prioritize execution by novelty and risk.
 A successful build does not prove command behavior or all published routes.
+Complete technical-writing's required `unslop` pass for every changed document
+before the final checks. Preserve facts, citations, warnings, and
+evidence-calibrated uncertainty through that pass. If the pass already ran
+during drafting, do not repeat it unless further prose changes need review.
 
 Do not execute destructive commands, remote installers, production operations,
 or credentialed/cost-incurring requests merely to test documentation. Use an

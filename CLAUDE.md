@@ -40,6 +40,21 @@ distinguishes instruction gaps from noncompliance, and proposes minimal edits
 without applying them. Its analysis guide includes manual acceptance scenarios
 for retry loops, justified exploration, and incomplete or untrusted transcripts.
 
+## Technical writing
+
+`skills/technical-writing/` vendors the MIT-licensed
+`bstack/technical-writing` skill from `lbussell/agent-skills`. Keep its
+upstream copyright and license in the skill directory and record the imported
+revision in README.md. Its four document-type references load on demand.
+The skill is explicitly invoked and requires `unslop` for each changed
+document's final review. The existing `skills/unslop/` permits that invocation
+without enabling automatic model invocation. A relative-file fallback lets
+clients apply the bundled `unslop` instructions when invocation by name is
+unavailable.
+`project-documentation` explicitly invokes this skill for document-type and
+prose guidance, completes its required `unslop` review before final validation,
+and keeps capability overviews separate from generated exact reference.
+
 ## Python Script Execution
 
 ### UTF-8 Encoding

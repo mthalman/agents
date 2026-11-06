@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Remove recognizable AI-writing patterns from existing prose while preserving its meaning, evidence, uncertainty, and intended voice. Use only when the user explicitly asks to unslop, de-AI, humanize, or remove AI tells from text. Applies to documentation, messages, PR descriptions, reports, and other prose, but never rewrites code, commands, identifiers, or quotations.
+description: Remove recognizable AI-writing patterns from existing prose while preserving its meaning, evidence, uncertainty, and intended voice. Use when the user explicitly asks to unslop, de-AI, humanize, or remove AI tells from text, or when invoked by the technical-writing skill for its required final review. Applies to documentation, messages, PR descriptions, reports, and other prose, but never rewrites code, commands, identifiers, or quotations.
 disable-model-invocation: true
 ---
 

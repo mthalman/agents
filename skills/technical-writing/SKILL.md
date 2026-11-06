@@ -1,105 +1,131 @@
 ---
 name: technical-writing
-description: Use when authoring or substantively reviewing the content of technical documentation, READMEs, RFCs, design explanations, tutorials, how-to guides, reference material, or other engineering prose. Helps choose the document mode, organize information for the reader, write direct instructions, maintain precise terminology, and remove ambiguity. Do not use for PR title and description or body drafts; use draft-pr. Do not use for GFM syntax, Markdown formatting, links, tables, or structural validation alone; use markdown-toolkit for those mechanics.
+description: >-
+  Improve sentence structure, framing, clarity, and precision in technical documentation.
+  Use for READMEs, procedures, reference overviews, explanations, architecture documents, and RFCs.
+disable-model-invocation: true
 ---
 
-# Technical Writing
+# Technical writing
 
-Write for an engineer who needs to understand the text correctly on the first
-read.
+Write documentation that helps readers complete a task or understand a subject.
+Use these guidelines with judgment.
+Keep a natural sentence when a mechanical rewrite would make it worse.
 
-## Workflow
+## Select the audience and document type
 
-### 1. Identify the reader and job
+Before you write, answer these questions:
 
-Determine:
+1. Who will read this?
+2. What should they be able to do or understand after reading it?
+3. What knowledge can you assume?
+4. What type of document will meet that need?
 
-- who will read the document;
-- what they are trying to do or understand;
-- what they already know;
-- what evidence, commands, or reference material they need.
+Load the resource for the document you will write or review:
 
-Do not invent missing product or system facts. Inspect the repository or ask
-for information that cannot be observed.
+| Document type | Resource |
+| --- | --- |
+| README | [README files](./references/readmes.md) |
+| Tutorial, how-to guide, or contributing guide | [Procedures](./references/procedures.md) |
+| Reference overview, command index, or API index | [Reference documentation](./references/reference.md) |
+| Explanation, architecture document, RFC, or proposal | [Design and explanatory documents](./references/design-documents.md) |
 
-### 2. Choose one document mode
+Load only resources that apply to the current task.
+Load more than one resource when a document contains distinct sections for different purposes.
 
-Classify the document before drafting:
+## Write for the audience
 
-| Mode | Reader's job | Author's job |
-|---|---|---|
-| Tutorial | Learn by completing a guided experience | Protect the learning path and show visible progress |
-| How-to | Complete a specific task | Give direct steps and relevant branches |
-| Reference | Look up facts | Describe options, limits, errors, and contracts completely |
-| Explanation | Understand a bounded topic | Explain context, constraints, alternatives, and rationale |
+Users want to complete a task.
+Give them a short path to a useful result and omit implementation details they cannot act on.
 
-Keep one primary mode per document. Split and link when readers need a
-different mode. For example, link from a how-to guide to complete reference
-details instead of interrupting the procedure.
+Developers may use, integrate, contribute to, maintain, or review software.
+Include the technical detail required for their current role.
+Use exact types, symbols, paths, and commands when those details help them complete the task.
 
-### 3. Build the structure
+A document can serve more than one audience.
 
-Put the common path and essential facts first. Use headings that communicate
-the section's point or task. Keep prerequisites before steps and warnings
-before the actions they constrain.
+## Frame the content
 
-For procedures:
+- Put purpose and scope near the start.
+- State the main point of a section in its first paragraph.
+- Give each paragraph one main point.
+- Start a paragraph with context that readers already have.
+- Introduce new information after the context it depends on.
+- Put causes before effects when readers need the cause to understand the result.
+- Make relationships explicit with words such as `because`, `if`, and `therefore`.
+- Put prerequisites before instructions that depend on them.
+- Put common cases before uncommon cases.
+- Use sentence-case headings that describe the content below them.
+- Use a numbered list for a sequence.
+- Use bullets for items with no required order.
+- Introduce a list with a complete sentence.
+- Keep list items grammatically parallel.
+- Use one level-1 heading and do not skip heading levels.
+- Use link text that names the destination or subject.
+- Keep each section focused on one purpose.
 
-1. State the outcome.
-2. List prerequisites.
-3. Give one action per step.
-4. Show expected results where they help the reader detect failure.
-5. Put optional branches after the common path.
-6. End with a check that confirms the task succeeded.
+## Structure sentences
 
-For explanations, anchor the document on a real question and distinguish facts,
-constraints, decisions, alternatives, and opinion.
+- Address the reader as "you" in instructions.
+- Use present tense for current behavior.
+- Write instructions as commands: "Select **Submit**."
+- Name the actor when it matters: "The compiler checks the query."
+- Prefer active voice.
+- Put the subject and verb close together.
+- Put an action near the start of an instruction.
+- Put a condition before the action or result it controls.
+- Keep one instruction in each sentence.
+- Keep one main idea in other sentences.
+- Review instructions longer than 20 words and other sentences longer than 25 words.
+- Split a sentence when a reader must go back to understand it.
+- Prefer common words such as "use" and "help."
+- Use one term for one concept.
+- Use articles where normal grammar requires them.
+- Remove modifiers that add no information.
+- Rewrite past participles that make a noun phrase hard to parse.
+- Use `will` only for events that occur in the future.
+- Remove "please," "simply," "easy," and "quickly" from instructions.
+- Replace an `-ing` phrase when it hides who acts, when an action occurs, or how it relates to the sentence.
 
-### 4. Write precisely
+## Prevent ambiguity
 
-Use the repository's real symbol, command, flag, and component names. Do not
-rotate synonyms for variety.
+- Put `only`, `not`, and similar words next to the words they modify.
+- Break up long groups of nouns.
+- Make each pronoun refer to one clear noun.
+- Include a verb for each clause.
+- Keep words such as `that` when they make sentence structure clear.
+- Repeat an article when it distinguishes two items.
+- Make the scope of `and` and `or` clear.
+- Use a period to separate complete thoughts.
+- Avoid a slash when readers could interpret the relationship in more than one way.
+- Avoid idioms, metaphors, and Latin abbreviations.
 
-Prefer:
+## Use concrete information
 
-- present tense;
-- active voice when the actor matters;
-- direct commands for instructions;
-- conditions before the action they govern;
-- concrete mechanisms and measurements;
-- descriptive link text;
-- one coherent thought per sentence.
+- Replace a general claim with a fact, instruction, example, or measurement.
+- Include expected output when it helps readers confirm that a step worked.
+- Use real paths and commands.
+- Keep examples short and complete.
+- Verify counts, file trees, generated output, and compatibility claims.
+- Include the command that regenerates generated documentation.
+- Link to source when copied facts can become outdated.
 
-Retain passive voice, longer sentences, or specialized terms when they improve
-precision. Explain necessary unfamiliar terms once.
+## Review the result
 
-### 5. Remove ambiguity
+Apply the `unslop` skill to each document that this skill changes.
+If the client cannot invoke `unslop` by name, read [the bundled Unslop skill](../unslop/SKILL.md) and its referenced pattern catalog, then apply those instructions.
+Remove filler, promotional language, vague claims, unnecessary hedging, abstract jargon, and meaningless emphasis.
 
-Check that:
+Before you finish, check the document:
 
-- `only`, `not`, and similar modifiers sit beside what they modify;
-- each pronoun points to one clear noun;
-- each clause has an explicit subject and verb;
-- long noun strings are unpacked;
-- `and` and `or` group terms unambiguously;
-- one concept has one name throughout the document;
-- examples, counts, paths, and commands are valid for the current revision.
+1. Does the opening address the primary audience and task?
+2. Can readers find prerequisites, steps, facts, and errors where they expect them?
+3. Does each section have a clear purpose?
+4. Are commands, paths, symbols, and examples correct?
+5. Does each term have one consistent meaning?
+6. Can any sentence have two reasonable interpretations?
+7. Can you remove any sentence without losing useful information?
+8. Does the text sound like a person wrote it for this project?
 
-### 6. Apply the appropriate final pass
-
-- Use `markdown-toolkit` for GFM structure and syntax validation.
-- Use `unslop` only when the user requests an AI-pattern and voice cleanup.
-- Preserve citations, evidence-calibrated uncertainty, quoted text, and formal
-  terminology through every editorial pass.
-
-## Detailed guidance
-
-Read [references/style-guide.md](references/style-guide.md) when drafting a
-substantial document or diagnosing unclear prose. It contains mode-specific
-guidance, sentence-level checks, and examples.
-
-## Output
-
-When authoring, return or write the requested document. When reviewing, report
-the highest-impact structural and clarity problems first, with concrete
-rewrites. Do not turn a writing review into a Markdown lint report.
+If you find a recurring form of artificial writing that `unslop` does not cover, mention a proposed rule and replacement in your response.
+Do not edit the `unslop` skill as part of this task.

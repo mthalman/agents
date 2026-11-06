@@ -64,8 +64,13 @@ Document a bounded public surface consistently:
 Omit fields that do not apply. Reference completeness means covering the chosen
 public surface, not documenting internal implementation details.
 
-Link generated reference rather than manually copying it. Explain relationships
-and surprising behavior that generation does not capture.
+Use a hand-written overview to map capabilities to public commands, APIs, or
+components and link each entry to exact details and examples. Keep exact
+signatures, overloads, exhaustive option lists, schemas, and default tables in
+generated reference when available. Include the project's existing command for
+regenerating that reference. When generation is unavailable, verify necessary
+exact details against source rather than inventing a generation toolchain.
+Explain relationships and surprising behavior that generation does not capture.
 
 Qualify performance and reliability claims with evidence and conditions.
 Do not convert a local benchmark, dependency capability, or passing test into

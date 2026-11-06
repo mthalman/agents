@@ -143,3 +143,13 @@ client behavior. The evaluation toolchain under `evals/` has its own dependencie
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
+The [technical-writing skill](skills/technical-writing/SKILL.md) and its four
+reference files are imported from
+[lbussell/agent-skills](https://github.com/lbussell/agent-skills/tree/f6df4398323a2f713337d4aa72935fed8d59543b/bstack/technical-writing)
+at commit `f6df4398323a2f713337d4aa72935fed8d59543b`. They retain Logan Bussell's
+copyright and [MIT license](skills/technical-writing/LICENSE).
+The skill is explicitly invoked and requires a final review with the existing
+`unslop` skill. A local fallback lets clients read the bundled `unslop`
+instructions when invocation by name is unavailable; the four reference files
+are unchanged.

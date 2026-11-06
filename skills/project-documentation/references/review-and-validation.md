@@ -23,6 +23,12 @@ Use existing Markdown and link tooling. When available, use markdown-toolkit
 and resolve its helpers from the loaded skill, not the target repository.
 Do not introduce a new toolchain merely to validate one document.
 
+Technical-writing requires an `unslop` review of each changed document.
+Complete that review before final validation, preserving technical facts,
+citations, warnings, and necessary uncertainty. Follow technical-writing's
+bundled-file fallback if the client cannot invoke `unslop` by name.
+A response-only review does not authorize rewriting the reviewed documents.
+
 ## Handle unavailable verification
 
 Distinguish these outcomes:
